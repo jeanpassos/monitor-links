@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOC-ITS Monitoramento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">NOC-ITS Monitoramento</a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Adicionar Link</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('add_link') }}" method="post">
+                            <div class="mb-3">
+                                <label for="url" class="form-label">URL ou IP</label>
+                                <input type="text" class="form-control" id="url" name="url" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Descrição</label>
+                                <input type="text" class="form-control" id="description" name="description">
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="is_ip" name="is_ip" value="true">
+                                    <label class="form-check-label" for="is_ip">
+                                        Este é um endereço IP (usar ping)
+                                    </label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Adicionar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Links Monitorados</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>URL</th>
+                                        <th>Descrição</th>
+                                        <th>Status</th>
+                                        <th>Monitoramento</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="linksTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let updateTimer = null;
+        let isPageVisible = true;
+
+        // Função para atualizar a tabela
+        function updateLinksTable() {
+            if (!isPageVisible) return; // Não atualiza se a página não estiver visível
+            
+            fetch('/api/links')
+                .then(response => response.json())
+                .then(links => {
+                    const tbody = document.getElementById('linksTableBody');
+                    tbody.innerHTML = '';
+                    
+                    links.forEach(link => {
+                        const row = document.createElement('tr');
+                        
+                        // URL
+                        row.innerHTML += `<td>${link.url}</td>`;
+                        
+                        // Descrição
+                        row.innerHTML += `<td>${link.description || ''}</td>`;
+                        
+                        // Status
+                        row.innerHTML += `
+                            <td>
+                                ${link.is_up ? 
+                                    '<span class="badge bg-success">Online</span>' : 
+                                    '<span class="badge bg-danger">Offline</span>'}
+                            </td>`;
+                        
+                        // Monitoramento
+                        row.innerHTML += `
+                            <td>
+                                ${link.active ? 
+                                    '<span class="badge bg-success">Monitorando</span>' : 
+                                    '<span class="badge bg-warning">Pausado</span>'}
+                            </td>`;
+                        
+                        // Ações
+                        row.innerHTML += `
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="/view_logs/${link.id}" class="btn btn-sm btn-info">Logs</a>
+                                    <a href="/edit_link/${link.id}" class="btn btn-sm btn-warning">Editar</a>
+                                    <form action="/toggle_active/${link.id}" method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-sm ${link.active ? 'btn-secondary' : 'btn-success'}">
+                                            ${link.active ? 'Pausar' : 'Ativar'}
+                                        </button>
+                                    </form>
+                                    <form action="/delete_link/${link.id}" method="post" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir este link?');">
+                                        <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
+                                    </form>
+                                </div>
+                            </td>`;
+                        
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(error => console.error('Erro ao atualizar tabela:', error));
+        }
+
+        // Controle de visibilidade da página
+        document.addEventListener('visibilitychange', () => {
+            isPageVisible = !document.hidden;
+            if (isPageVisible) {
+                // Atualiza imediatamente quando a página fica visível
+                updateLinksTable();
+                // Reinicia o timer
+                if (updateTimer) clearInterval(updateTimer);
+                updateTimer = setInterval(updateLinksTable, 5000);
+            } else {
+                // Para o timer quando a página fica invisível
+                if (updateTimer) clearInterval(updateTimer);
+            }
+        });
+
+        // Primeira atualização e início do timer
+        updateLinksTable();
+        updateTimer = setInterval(updateLinksTable, 5000);
+
+        // Limpa o timer quando a página é fechada
+        window.addEventListener('beforeunload', () => {
+            if (updateTimer) clearInterval(updateTimer);
+        });
+    </script>
+</body>
+</html>
