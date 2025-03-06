@@ -8,10 +8,6 @@ venv/
 env/
 ENV/
 
-# Database
-*.db
-*.sqlite3
-
 # IDE specific files
 .vscode/
 .idea/
