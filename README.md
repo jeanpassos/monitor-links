@@ -1,6 +1,6 @@
 # 🌐 Monitor Links - NOC ITS
 
-Sistema de monitoramento de links desenvolvido para o NOC-ITS, fornecendo monitoramento em tempo real da saúde e performance de conexões de rede críticas. O sistema coleta e analisa métricas essenciais como disponibilidade, latência, perda de pacotes e jitter, apresentando os dados através de uma interface web intuitiva.
+Sistema de monitoramento de links desenvolvido para o ITS, fornecendo monitoramento em tempo real da saúde e performance de conexões de rede críticas. O sistema coleta e analisa métricas essenciais como disponibilidade, latência, perda de pacotes e jitter, apresentando os dados através de uma interface web intuitiva.
 
 ## ✨ Funcionalidades Principais
 
